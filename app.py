@@ -1,6 +1,8 @@
 import streamlit as st
 import pickle
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # ================= PAGE CONFIG =================
 st.set_page_config(
@@ -9,9 +11,18 @@ st.set_page_config(
     layout="wide"
 )
 
-# ================= LOAD FILES =================
+# ================= LOAD FILE =================
 df = pickle.load(open("netflix_df.pkl", "rb"))
-cosine_sim = pickle.load(open("cosine_sim.pkl", "rb"))
+
+# ================= BUILD MODEL =================
+@st.cache_data
+def build_model(df):
+    tfidf = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf.fit_transform(df['Tags'])  # change column if needed
+    cosine_sim = cosine_similarity(tfidf_matrix)
+    return cosine_sim
+
+cosine_sim = build_model(df)
 
 # ================= CSS =================
 st.markdown("""
@@ -86,14 +97,12 @@ input {
 </style>
 """, unsafe_allow_html=True)
 
-
 # ================= HEADER =================
 st.markdown("<div class='netflix-header'>NETFLIX</div>", unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>What do you want to watch today?</div>", unsafe_allow_html=True)
 
 # ================= SEARCH =================
 movie_name = st.text_input("Search for a movie or TV show")
-st.markdown("</div>", unsafe_allow_html=True)
 
 # ================= RECOMMEND FUNCTION =================
 def recommend(movie_name):
